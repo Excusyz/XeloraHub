@@ -1,0 +1,48 @@
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local PlaceId = 4442272183
+
+function notify(message)
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Server Hopper";
+        Text = message;
+        Duration = 5;
+    })
+end
+
+function HopSever()
+    local cursor = ""
+    while _G.Config.HopServer do
+        local url = string.format("https://games.roblox.com/v1/games/%d/servers/Public?limit=100&cursor=%s", PlaceId, cursor)
+        local success, response = pcall(function()
+            return game:HttpGet(url)
+        end)
+        
+        if success then
+            local data = HttpService:JSONDecode(response)
+            for _, server in ipairs(data.data) do
+                if server.playing < 6 and server.playing > 0 then
+                    return server.id
+                end
+            end
+            cursor = data.nextPageCursor
+            if not cursor then
+                notify("Not Found Server retrying...")
+                wait(5)
+                cursor = ""
+            end
+        else
+            notify("Failed To Join Server Retrying...")
+            wait(5)
+        end
+    end
+end
+
+while _G.Config.HopServer do
+    local serverId = HopServer()
+    if serverId then
+        notify("Joining Server...")
+        TeleportService:TeleportToPlaceInstance(PlaceId, serverId)
+        break
+    end
+end
