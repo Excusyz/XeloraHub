@@ -10,7 +10,7 @@ function notify(message)
     })
 end
 
-function HopSever()
+function HopServer()
     local cursor = ""
     while _G.Config.HopServer do
         local url = string.format("https://games.roblox.com/v1/games/%d/servers/Public?limit=100&cursor=%s", PlaceId, cursor)
