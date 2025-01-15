@@ -1,62 +1,19 @@
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-local PlaceId = 4442272183
+local placeId = 4442272183
+local function hopServer()
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    local currentJobId = game.JobId
 
-function notify(message, callback)
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Server Hopper",
-        Text = message,
-        Duration = 5,
-        Button1 = "Yes",
-        Button2 = "No",
-        Callback = callback
-    })
-end
+    local servers = HttpService:JSONDecode(
+        game:HttpGet("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100")
+    )
 
-function HopServer()
-    local cursor = ""
-    while _G.Config.HopServer do
-        local url = string.format("https://games.roblox.com/v1/games/%d/servers/Public?limit=100&cursor=%s", PlaceId, cursor)
-        local success, response = pcall(function()
-            return game:HttpGet(url)
-        end)
-
-        if success then
-            local data = HttpService:JSONDecode(response)
-            for _, server in ipairs(data.data) do
-                if server.playing < 6 and server.playing > 0 then
-                    return server.id
-                end
-            end
-            cursor = data.nextPageCursor
-            if not cursor then
-                notify("No server found. Retry?", function(choice)
-                    if choice == "Yes" then
-                        cursor = ""
-                    else
-                        _G.Config.HopServer = false
-                    end
-                end)
-                wait(5)
-            end
-        else
-            notify("Failed to fetch server data. Retry?", function(choice)
-                if choice == "Yes" then
-                    cursor = ""
-                else
-                    _G.Config.HopServer = false
-                end
-            end)
-            wait(5)
+    for _, server in pairs(servers.data) do
+        if server.playing < server.maxPlayers and server.id ~= currentJobId then
+            TeleportService:TeleportToPlaceInstance(placeId, server.id)
+            break
         end
     end
 end
 
-while _G.Config.HopServer do
-    local serverId = HopServer()
-    if serverId then
-        notify("Joining server...")
-        TeleportService:TeleportToPlaceInstance(PlaceId, serverId)
-        break
-    end
-end
+hopServer()
