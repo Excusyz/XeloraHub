@@ -2,11 +2,14 @@ local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local PlaceId = 4442272183
 
-function notify(message)
+function notify(message, callback)
     game.StarterGui:SetCore("SendNotification", {
-        Title = "Server Hopper";
-        Text = message;
-        Duration = 5;
+        Title = "Server Hopper",
+        Text = message,
+        Duration = 5,
+        Button1 = "Yes",
+        Button2 = "No",
+        Callback = callback
     })
 end
 
@@ -17,7 +20,7 @@ function HopServer()
         local success, response = pcall(function()
             return game:HttpGet(url)
         end)
-        
+
         if success then
             local data = HttpService:JSONDecode(response)
             for _, server in ipairs(data.data) do
@@ -27,12 +30,23 @@ function HopServer()
             end
             cursor = data.nextPageCursor
             if not cursor then
-                notify("Not Found Server retrying...")
+                notify("No server found. Retry?", function(choice)
+                    if choice == "Yes" then
+                        cursor = ""
+                    else
+                        _G.Config.HopServer = false
+                    end
+                end)
                 wait(5)
-                cursor = ""
             end
         else
-            notify("Failed To Join Server Retrying...")
+            notify("Failed to fetch server data. Retry?", function(choice)
+                if choice == "Yes" then
+                    cursor = ""
+                else
+                    _G.Config.HopServer = false
+                end
+            end)
             wait(5)
         end
     end
@@ -41,7 +55,7 @@ end
 while _G.Config.HopServer do
     local serverId = HopServer()
     if serverId then
-        notify("Joining Server...")
+        notify("Joining server...")
         TeleportService:TeleportToPlaceInstance(PlaceId, serverId)
         break
     end
